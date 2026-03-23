@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+    <title>Controle de Consumo Red</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        :root {
+            --primary: #8338ec; --secondary: #ff006e; --light-purple: #f3e8ff;
+            --dark-purple: #3a0ca3; --white: #ffffff; --danger: #ff4d4d;
+        }
+        body { font-family: sans-serif; background-color: var(--light-purple); padding: 15px; color: var(--dark-purple); margin: 0; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h2 { text-align: center; color: var(--primary); }
+        .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .summary-item { color: var(--white); padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .summary-item.bruna { background-color: var(--primary); }
+        .summary-item.beatriz { background-color: var(--secondary); }
+        .summary-item span { display: block; font-size: 1.3em; font-weight: bold; }
+        .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); }
+        input, select { width: 100%; padding: 12px; border: 2px solid #e0b0ff; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background-color: var(--primary); color: var(--white); border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button:disabled { background-color: #ccc; }
+        
+        /* Estilos da Tabela e Botão Excluir */
+        .history-container { background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0e0ff; }
+        th { background: #f8f0ff; color: var(--primary); }
+        .btn-delete { 
+            background: none; border: none; color: var(--danger); 
+            font-weight: bold; cursor: pointer; font-size: 18px; padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>🚗 Controle de gasolina da Red</h2>
+
+    <div class="summary-grid">
+        <div class="summary-item bruna">
+            <small>Bruna</small>
+            <span id="totalBruna">R$ 0,00</span>
+        </div>
+        <div class="summary-item beatriz">
+            <small>Beatriz</small>
+            <span id="totalBeatriz">R$ 0,00</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="form-group">
+            <label>Data</label>
+            <input type="date" id="data">
+        </div>
+        <div class="form-group">
+            <label>Quem usou?</label>
+            <select id="usuario">
+                <option value="Bruna">Bruna</option>
+                <option value="Beatriz">Beatriz</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>KM Rodados</label>
+            <input type="number" id="km" inputmode="decimal" placeholder="0">
+        </div>
+        <div class="form-group">
+            <label>Valor por KM (R$)</label>
+            <input type="number" step="0.01" id="valorKm" inputmode="decimal" placeholder="0,00">
+        </div>
+        <button id="btnSalvar" onclick="salvarNoSupabase()">Salvar Registro</button>
+    </div>
+
+    <div class="history-container">
+        <table id="tabelaRegistros">
+            <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Nome</th>
+                    <th>Total</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    // --- CONFIGURAÇÃO SUPABASE ---
+    const SUPABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5YWRzZ2l2ZnF6bXRqZ3pteGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MzE1MjcsImV4cCI6MjA4NDQwNzUyN30.Mn3eX8HzJ20CySynGriqju78qlWlYcXZr7LE9QMh9y0';
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    document.getElementById('data').valueAsDate = new Date();
+    window.onload = buscarDados;
+
+    async function buscarDados() {
+        const { data, error } = await _supabase
+            .from('registros_gasolina')
+            .select('*')
+            .order('data', { ascending: false });
+
+        if (error) {
+            console.error('Erro ao buscar:', error);
+            return;
+        }
+        renderizarTabela(data);
+    }
+
+    async function salvarNoSupabase() {
+        const btn = document.getElementById('btnSalvar');
+        const data = document.getElementById('data').value;
+        const usuario = document.getElementById('usuario').value;
+        const km = parseFloat(document.getElementById('km').value);
+        const valorKm = parseFloat(document.getElementById('valorKm').value);
+
+        if (!km || !valorKm || !data) return alert("Preencha todos os campos!");
+
+        btn.disabled = true;
+        btn.innerText = "Salvando...";
+
+        const totalDia = km * valorKm;
+
+        const { error } = await _supabase
+            .from('registros_gasolina')
+            .insert([{ data, usuario, km, valor_km: valorKm, total_dia: totalDia }]);
+
+        if (error) {
+            alert("Erro ao salvar!");
+        } else {
+            document.getElementById('km').value = '';
+            document.getElementById('valorKm').value = '';
+            await buscarDados();
+        }
+
+        btn.disabled = false;
+        btn.innerText = "Salvar Registro";
+    }
+
+    // --- NOVA FUNÇÃO DE EXCLUIR ---
+    async function excluirRegistro(id) {
+        if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
+
+        const { error } = await _supabase
+            .from('registros_gasolina')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert("Erro ao excluir!");
+        } else {
+            await buscarDados(); // Atualiza a lista após excluir
+        }
+    }
+
+    function renderizarTabela(registros) {
+        const tbody = document.querySelector('#tabelaRegistros tbody');
+        tbody.innerHTML = '';
+        let tBruna = 0, tBeatriz = 0;
+
+        registros.forEach(reg => {
+            const tr = document.createElement('tr');
+            const dataBR = reg.data.split('-').reverse().join('/');
+            const cor = reg.usuario === 'Bruna' ? 'var(--primary)' : 'var(--secondary)';
+            
+            tr.innerHTML = `
+                <td>${dataBR}</td>
+                <td style="color:${cor}; font-weight:bold">${reg.usuario}</td>
+                <td>R$ ${reg.total_dia.toFixed(2)}</td>
+                <td style="text-align:right">
+                    <button class="btn-delete" onclick="excluirRegistro('${reg.id}')">×</button>
+                </td>
+            `;
+            tbody.appendChild(tr);
+
+            if (reg.usuario === 'Bruna') tBruna += reg.total_dia;
+            if (reg.usuario === 'Beatriz') tBeatriz += reg.total_dia;
+        });
+
+        document.getElementById('totalBruna').innerText = `R$ ${tBruna.toFixed(2).replace('.', ',')}`;
+        document.getElementById('totalBeatriz').innerText = `R$ ${tBeatriz.toFixed(2).replace('.', ',')}`;
+    }
+</script>
+</body>
+</html>
