@@ -2,12 +2,16 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/180/e63946/car--v1.png">
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚗</text></svg>">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Controle Red</title>
+    
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><path fill='%23e63946' d='M135.2 117.4L109.1 192H402.9l-26.1-74.6C372.3 104.6 360.2 96 346.6 96H165.4c-13.6 0-25.7 8.6-30.2 21.4zM48 192H32c-17.7 0-32 14.3-32 32v96c0 17.7 14.3 32 32 32V448c0 17.7 14.3 32 32 32h32c17.7 0 32-14.3 32-32V352H352v96c0 17.7 14.3 32 32 32h32c17.7 0 32-14.3 32-32V352c17.7 0 32-14.3 32-32V224c0-17.7-14.3-32-32-32H464l-48.7-139.1C411.4 39.1 385.1 16 356 16H156c-29.1 0-55.4 23.1-59.3 52.9L48 192zM128 288a32 32 0 1 1 0 64 32 32 0 1 1 0-64zm288 32a32 32 0 1 1 -64 0 32 32 0 1 1 64 0z'/></svg>">
-    <title>Controle de Consumo Red</title>
+    <link rel="apple-touch-icon" href="https://img.icons8.com/ios-filled/180/e63946/car--v1.png">
+    <meta name="apple-mobile-web-app-title" content="Controle Red">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
     <style>
         :root {
             --primary: #8338ec; --secondary: #ff006e; --light-purple: #f3e8ff;
@@ -15,49 +19,55 @@
         }
         body { font-family: sans-serif; background-color: var(--light-purple); padding: 15px; color: var(--dark-purple); margin: 0; }
         .container { max-width: 600px; margin: 0 auto; }
-        h2 { text-align: center; color: var(--primary); }
+        h2 { text-align: center; color: var(--primary); margin-bottom: 10px; }
+        
+        .periodo-seletor { text-align: center; margin-bottom: 15px; }
+        .periodo-seletor select { width: auto; padding: 8px; border-radius: 8px; border: 2px solid var(--primary); }
+
         .summary-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
         .summary-item { color: var(--white); padding: 15px; border-radius: 12px; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .summary-item.bruna { background-color: var(--primary); }
         .summary-item.beatriz { background-color: var(--secondary); }
         .summary-item span { display: block; font-size: 1.3em; font-weight: bold; }
+        
         .card { background: var(--white); padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
         .form-group { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--primary); }
         input, select { width: 100%; padding: 12px; border: 2px solid #e0b0ff; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background-color: var(--primary); color: var(--white); border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        button:disabled { background-color: #ccc; }
         
-        /* Estilos da Tabela e Botão Excluir */
+        button { width: 100%; padding: 15px; background-color: var(--primary); color: var(--white); border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        
         .history-container { background: var(--white); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         table { width: 100%; border-collapse: collapse; font-size: 13px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f0e0ff; }
         th { background: #f8f0ff; color: var(--primary); }
-        .btn-delete { 
-            background: none; border: none; color: var(--danger); 
-            font-weight: bold; cursor: pointer; font-size: 18px; padding: 5px 10px;
-        }
+        .btn-delete { background: none; border: none; color: var(--danger); font-size: 18px; padding: 5px; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>🚗 Controle de gasolina da Red</h2>
+    <h2>🚗 Controle do "Red"</h2>
+
+    <div class="periodo-seletor">
+        <label>Período de Fechamento (Fatura):</label>
+        <select id="filtroPeriodo" onchange="buscarDados()"></select>
+    </div>
 
     <div class="summary-grid">
         <div class="summary-item bruna">
-            <small>Bruna</small>
+            <small>Total Bruna</small>
             <span id="totalBruna">R$ 0,00</span>
         </div>
         <div class="summary-item beatriz">
-            <small>Beatriz</small>
+            <small>Total Beatriz</small>
             <span id="totalBeatriz">R$ 0,00</span>
         </div>
     </div>
 
     <div class="card">
         <div class="form-group">
-            <label>Data</label>
+            <label>Data do Uso</label>
             <input type="date" id="data">
         </div>
         <div class="form-group">
@@ -73,7 +83,7 @@
         </div>
         <div class="form-group">
             <label>Valor por KM (R$)</label>
-            <input type="number" step="0.01" id="valorKm" inputmode="decimal" placeholder="0,00">
+            <input type="number" step="0.01" id="valorKm" inputmode="decimal" placeholder="0,45">
         </div>
         <button id="btnSalvar" onclick="salvarNoSupabase()">Salvar Registro</button>
     </div>
@@ -81,12 +91,7 @@
     <div class="history-container">
         <table id="tabelaRegistros">
             <thead>
-                <tr>
-                    <th>Data</th>
-                    <th>Nome</th>
-                    <th>Total</th>
-                    <th></th>
-                </tr>
+                <tr><th>Data</th><th>Nome</th><th>Total</th><th></th></tr>
             </thead>
             <tbody></tbody>
         </table>
@@ -94,13 +99,47 @@
 </div>
 
 <script>
-    // --- CONFIGURAÇÃO SUPABASE ---
     const SUPABASE_URL = 'https://qyadsgivfqzmtjgzmxhr.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5YWRzZ2l2ZnF6bXRqZ3pteGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MzE1MjcsImV4cCI6MjA4NDQwNzUyN30.Mn3eX8HzJ20CySynGriqju78qlWlYcXZr7LE9QMh9y0';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InF5YWRzZ2l2ZnF6bXRqZ3pteGhyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4MzE1MjcsImV4cCI6MjA4NDQwNzUyN30.Mn3eX8HzJ20CySynGriqju78qlWlYcXZr7LE9QMh9y0';  
     const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Inicialização
     document.getElementById('data').valueAsDate = new Date();
-    window.onload = buscarDados;
+    window.onload = () => {
+        gerarOpcoesPeriodo();
+        buscarDados();
+    };
+
+    // Lógica de Agrupamento pelo dia 20
+    function getPeriodoFinanceiro(dataString) {
+        const data = new Date(dataString + 'T12:00:00'); // Evita erro de fuso
+        let mes = data.getMonth();
+        let ano = data.getFullYear();
+
+        // Se passar do dia 20, pertence à fatura do próximo mês
+        if (data.getDate() > 20) {
+            mes++;
+            if (mes > 11) { mes = 0; ano++; }
+        }
+        
+        const nomesMeses = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+        return `${nomesMeses[mes]}/${ano}`;
+    }
+
+    function gerarOpcoesPeriodo() {
+        const select = document.getElementById('filtroPeriodo');
+        const hoje = new Date();
+        // Gera opções para os últimos 6 meses
+        for (let i = -1; i < 5; i++) {
+            const d = new Date(hoje.getFullYear(), hoje.getMonth() - i, 1);
+            const label = getPeriodoFinanceiro(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`);
+            const option = document.createElement('option');
+            option.value = label;
+            option.text = label;
+            if (i === 0) option.selected = true;
+            select.appendChild(option);
+        }
+    }
 
     async function buscarDados() {
         const { data, error } = await _supabase
@@ -108,11 +147,12 @@
             .select('*')
             .order('data', { ascending: false });
 
-        if (error) {
-            console.error('Erro ao buscar:', error);
-            return;
-        }
-        renderizarTabela(data);
+        if (error) return console.error(error);
+
+        const periodoSelecionado = document.getElementById('filtroPeriodo').value;
+        const registrosFiltrados = data.filter(reg => getPeriodoFinanceiro(reg.data) === periodoSelecionado);
+        
+        renderizarTabela(registrosFiltrados);
     }
 
     async function salvarNoSupabase() {
@@ -122,43 +162,27 @@
         const km = parseFloat(document.getElementById('km').value);
         const valorKm = parseFloat(document.getElementById('valorKm').value);
 
-        if (!km || !valorKm || !data) return alert("Preencha todos os campos!");
+        if (!km || !valorKm || !data) return alert("Preencha tudo!");
 
         btn.disabled = true;
         btn.innerText = "Salvando...";
 
-        const totalDia = km * valorKm;
-
         const { error } = await _supabase
             .from('registros_gasolina')
-            .insert([{ data, usuario, km, valor_km: valorKm, total_dia: totalDia }]);
+            .insert([{ data, usuario, km, valor_km: valorKm, total_dia: km * valorKm }]);
 
-        if (error) {
-            alert("Erro ao salvar!");
-        } else {
+        if (!error) {
             document.getElementById('km').value = '';
-            document.getElementById('valorKm').value = '';
             await buscarDados();
         }
-
         btn.disabled = false;
         btn.innerText = "Salvar Registro";
     }
 
-    // --- NOVA FUNÇÃO DE EXCLUIR ---
     async function excluirRegistro(id) {
-        if (!confirm("Tem certeza que deseja excluir este gasto?")) return;
-
-        const { error } = await _supabase
-            .from('registros_gasolina')
-            .delete()
-            .eq('id', id);
-
-        if (error) {
-            alert("Erro ao excluir!");
-        } else {
-            await buscarDados(); // Atualiza a lista após excluir
-        }
+        if (!confirm("Excluir este registro?")) return;
+        await _supabase.from('registros_gasolina').delete().eq('id', id);
+        buscarDados();
     }
 
     function renderizarTabela(registros) {
@@ -168,21 +192,16 @@
 
         registros.forEach(reg => {
             const tr = document.createElement('tr');
-            const dataBR = reg.data.split('-').reverse().join('/');
             const cor = reg.usuario === 'Bruna' ? 'var(--primary)' : 'var(--secondary)';
-            
             tr.innerHTML = `
-                <td>${dataBR}</td>
+                <td>${reg.data.split('-').reverse().join('/')}</td>
                 <td style="color:${cor}; font-weight:bold">${reg.usuario}</td>
                 <td>R$ ${reg.total_dia.toFixed(2)}</td>
-                <td style="text-align:right">
-                    <button class="btn-delete" onclick="excluirRegistro('${reg.id}')">×</button>
-                </td>
+                <td><button class="btn-delete" onclick="excluirRegistro('${reg.id}')">×</button></td>
             `;
             tbody.appendChild(tr);
-
             if (reg.usuario === 'Bruna') tBruna += reg.total_dia;
-            if (reg.usuario === 'Beatriz') tBeatriz += reg.total_dia;
+            else tBeatriz += reg.total_dia;
         });
 
         document.getElementById('totalBruna').innerText = `R$ ${tBruna.toFixed(2).replace('.', ',')}`;
